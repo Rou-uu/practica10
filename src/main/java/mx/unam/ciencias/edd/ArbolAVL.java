@@ -23,6 +23,8 @@ public class ArbolAVL<T extends Comparable<T>>
          */
         public VerticeAVL(T elemento) {
             // Aquí va su código.
+            super(elemento);
+            altura = 0;
         }
 
         /**
@@ -31,6 +33,7 @@ public class ArbolAVL<T extends Comparable<T>>
          */
         @Override public int altura() {
             // Aquí va su código.
+            return altura;
         }
 
         /**
@@ -39,6 +42,7 @@ public class ArbolAVL<T extends Comparable<T>>
          */
         @Override public String toString() {
             // Aquí va su código.
+            return elemento + " " + altura() + "/" + balance();
         }
 
         /**
@@ -56,6 +60,27 @@ public class ArbolAVL<T extends Comparable<T>>
                 return false;
             @SuppressWarnings("unchecked") VerticeAVL vertice = (VerticeAVL)objeto;
             // Aquí va su código.
+            return vertice.altura() == altura() && super.equals(objeto);
+        }
+
+        private int superAltura() {
+            return super.altura();
+        }
+
+        private int balance() {
+            VerticeAVL i = (VerticeAVL) izquierdo;
+            VerticeAVL d = (VerticeAVL) derecho;
+
+            if (i != null && d != null)
+                return i.altura() - d.altura();
+
+            else if (i != null)
+                return i.altura() + 1;
+
+            else if (derecho != null)
+                return - 1 - d.altura();
+
+            return 0;
         }
     }
 
@@ -81,6 +106,7 @@ public class ArbolAVL<T extends Comparable<T>>
      */
     @Override protected Vertice nuevoVertice(T elemento) {
         // Aquí va su código.
+        return new VerticeAVL(elemento);
     }
 
     /**
@@ -91,6 +117,77 @@ public class ArbolAVL<T extends Comparable<T>>
      */
     @Override public void agrega(T elemento) {
         // Aquí va su código.
+        super.agrega(elemento);
+        VerticeAVL padre = getPadre((VerticeAVL) ultimoAgregado);
+        rebalancea(padre);
+    }
+    
+    private void rebalancea(VerticeAVL v) {
+        if (v == null)
+            return;
+
+        v.altura = v.superAltura();
+        int balance = v.balance();
+        boolean cambio = false;
+        VerticeAVL padre = getPadre(v);
+
+        if (balance == -2) {
+            VerticeAVL q = getHijoD(v);
+            VerticeAVL x = getHijoI(q);
+            VerticeAVL y = getHijoD(q);
+
+            if (q.balance() == 1) {
+                super.giraDerecha(q);
+                q.altura = q.superAltura();
+                x.altura = x.superAltura();
+                
+            }
+
+            q = getHijoD(v);
+            x = getHijoI(q);
+            y = getHijoD(q);
+
+            int qBal = q.balance();
+
+            if (qBal == 0 || qBal == -1 || qBal == -2) {
+                super.giraIzquierda(v);
+                v.altura = v.superAltura();
+                q.altura = q.superAltura();
+            }
+
+            if (cambio)
+                padre = getPadre(q);
+        }
+
+        else if (balance == 2) {
+            VerticeAVL p = getHijoI(v);
+            VerticeAVL x = getHijoI(p);
+            VerticeAVL y = getHijoD(p);
+
+            if (p.balance() == -1) {
+                super.giraIzquierda(p);
+                p.altura = p.superAltura();
+                y.altura = y.superAltura();
+                
+            }
+
+            p = getHijoI(v);
+            x = getHijoI(p);
+            y = getHijoD(p);
+
+            int pBal = p.balance();
+
+            if (pBal == 0 || pBal == 1 || pBal == 2) {
+                super.giraDerecha(v);
+                v.altura = v.superAltura();
+                p.altura = p.superAltura();
+            }
+
+            if (cambio)
+                padre = getPadre(p);
+        }
+
+        rebalancea(padre);
     }
 
     /**
@@ -100,6 +197,18 @@ public class ArbolAVL<T extends Comparable<T>>
      */
     @Override public void elimina(T elemento) {
         // Aquí va su código.
+        VerticeAVL eliminar = (VerticeAVL) busca(elemento);
+
+        if (eliminar == null)
+            return;
+
+        if (eliminar == raiz && elementos == 1)
+            limpia();
+
+        VerticeAVL intercambiado = (VerticeAVL) intercambiaEliminable(eliminar);
+        VerticeAVL padre = (VerticeAVL) intercambiado.padre;
+        eliminaVertice(intercambiado);
+        rebalancea(padre);
     }
 
     /**
@@ -126,5 +235,37 @@ public class ArbolAVL<T extends Comparable<T>>
         throw new UnsupportedOperationException("Los árboles AVL no  pueden " +
                                                 "girar a la derecha por el " +
                                                 "usuario.");
+    }
+
+    /*private VerticeAVL vertice (VerticeArbolBinario v) {
+        return (VerticeAVL) v;
+    }*/
+
+    private int max (int a,  int b) {
+        if (a > b)
+            return a;
+        return b;
+    }
+
+
+    private VerticeAVL getPadre(VerticeAVL r) {
+        if (r != null)
+            return (VerticeAVL) r.padre;
+
+        return null;
+    }
+
+    private VerticeAVL getHijoI(VerticeAVL r) {
+        if (r != null)
+            return (VerticeAVL) r.izquierdo;
+
+        return null;
+    }
+
+    private VerticeAVL getHijoD(VerticeAVL r) {
+        if (r != null)
+            return (VerticeAVL) r.derecho;
+
+        return null;
     }
 }
