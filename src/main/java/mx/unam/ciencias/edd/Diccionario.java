@@ -65,10 +65,10 @@ public class Diccionario<K, V> implements Iterable<V> {
             if (!iterador.hasNext()) {
                 iterador = null;
 
-                for (int i = indice + 1; i < entradas.length; i++) {
-                    if (entradas[i] != null) {
-                        indice = i;
-                        iterador = entradas[i].iteradorLista();
+                for (; ++indice < entradas.length;) {
+                    if (entradas[indice] != null) {
+                        iterador = entradas[indice].iteradorLista();
+                        break;
                     }
                 }
             }
@@ -187,9 +187,10 @@ public class Diccionario<K, V> implements Iterable<V> {
         int i = dispersor.dispersa(llave) & getMascara();
 
         if (entradas[i] == null) {
-            entradas[i] = new Lista<Entrada>();
-            entradas[i].agrega(temp);
+            Lista<Entrada> lista = new Lista<Entrada>();
+            lista.agrega(temp);
             elementos++;
+            entradas[i] = lista;
         }
 
         else {
@@ -312,7 +313,7 @@ public class Diccionario<K, V> implements Iterable<V> {
         }
 
         if (entradas[i].esVacia())
-            entradas[i] = null;
+            entradas[i] = null; 
     }
 
     /**
