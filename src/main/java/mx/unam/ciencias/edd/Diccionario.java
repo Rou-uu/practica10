@@ -22,6 +22,8 @@ public class Diccionario<K, V> implements Iterable<V> {
         /* Construye una nueva entrada. */
         public Entrada(K llave, V valor) {
             // Aquí va su código.
+            this.llave = llave;
+            this.valor = valor;
         }
     }
 
@@ -37,16 +39,41 @@ public class Diccionario<K, V> implements Iterable<V> {
          * diccionario. */
         public Iterador() {
             // Aquí va su código.
+            for (int i = 0; i < entradas.length; i++) {
+                if (entradas[i] != null) {
+                    indice = i;
+                    iterador = entradas[i].iteradorLista();
+                    break;
+                }
+            }
         }
 
         /* Nos dice si hay una siguiente entrada. */
         public boolean hasNext() {
             // Aquí va su código.
+            return iterador != null;
         }
 
         /* Regresa la siguiente entrada. */
         public Entrada siguiente() {
             // Aquí va su código.
+            if (iterador == null)
+                throw new NoSuchElementException();
+
+            Entrada p = iterador.next();
+
+            if (!iterador.hasNext()) {
+                iterador = null;
+
+                for (int i = indice + 1; i < entradas.length; i++) {
+                    if (entradas[i] != null) {
+                        indice = i;
+                        iterador = entradas[i].iteradorLista();
+                    }
+                }
+            }
+
+            return p;
         }
     }
 
@@ -57,6 +84,7 @@ public class Diccionario<K, V> implements Iterable<V> {
         /* Regresa el siguiente elemento. */
         @Override public K next() {
             // Aquí va su código.
+            return siguiente().llave;
         }
     }
 
@@ -67,6 +95,7 @@ public class Diccionario<K, V> implements Iterable<V> {
         /* Regresa el siguiente elemento. */
         @Override public V next() {
             // Aquí va su código.
+            return siguiente().valor;
         }
     }
 
@@ -125,6 +154,20 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public Diccionario(int capacidad, Dispersor<K> dispersor) {
         // Aquí va su código.
+        if (capacidad < MINIMA_CAPACIDAD)
+            capacidad = MINIMA_CAPACIDAD;
+
+        else {
+            int base = 2;
+            while (base < capacidad * 2)
+                base *= 2;
+
+            capacidad = base;
+        }
+
+        this.entradas = nuevoArreglo(capacidad);
+        this.dispersor = dispersor;
+
     }
 
     /**
@@ -137,6 +180,63 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public void agrega(K llave, V valor) {
         // Aquí va su código.
+        if (llave == null || valor == null)
+            throw new IllegalArgumentException();
+
+        Entrada temp = new Entrada(llave, valor);
+        int i = dispersor.dispersa(llave) & getMascara();
+
+        if (entradas[i] == null) {
+            entradas[i] = new Lista<Entrada>();
+            entradas[i].agrega(temp);
+            elementos++;
+        }
+
+        else {
+            boolean agregado = false;
+
+            for (Entrada ent : entradas[i]) {
+                if (ent.llave.equals(llave)) {
+                    ent.valor = valor;
+                    agregado = true;
+                    break;
+                }
+            }
+
+            if (!agregado) {
+                entradas[i].agrega(temp);
+                elementos++;
+            }
+        }
+
+        //Carga
+        if (carga() >= MAXIMA_CARGA) {
+            Lista<Entrada>[] nuevecita = nuevoArreglo(entradas.length * 2);
+
+            for (int x = 0; x < entradas.length; x++) {
+                if (entradas[x] != null) {
+                    for (Entrada ent : entradas[x]) {
+                        int h = dispersor.dispersa(ent.llave) & (nuevecita.length - 1);
+
+                        if (nuevecita[h] == null) {
+                            Lista<Entrada> aux = new Lista<Entrada>();
+                            aux.agrega(ent);
+                            nuevecita[h] = aux;
+                        }
+
+                        else {
+                            nuevecita[h].agrega(ent);
+                        }
+                    }
+                }
+            }
+
+            entradas = nuevecita;
+        }
+    }
+
+    private int getMascara() {
+        return entradas.length - 1;
     }
 
     /**
@@ -148,6 +248,20 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public V get(K llave) {
         // Aquí va su código.
+        if (llave == null)
+            throw new IllegalArgumentException();
+
+        int i = dispersor.dispersa(llave) & getMascara();
+
+        if (entradas[i] == null)
+            throw new NoSuchElementException();
+
+        for (Entrada ent : entradas[i]) {
+            if (ent.llave.equals(llave))
+                return ent.valor;
+        }
+
+        throw new NoSuchElementException();
     }
 
     /**
@@ -158,6 +272,19 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public boolean contiene(K llave) {
         // Aquí va su código.
+        if (llave == null)
+            return false;
+
+        int i = dispersor.dispersa(llave) & getMascara();
+
+        if (entradas[i] == null)
+            return false;
+
+        for (Entrada ent : entradas[i])
+            if (ent.llave.equals(llave))
+                return true;
+
+        return false;
     }
 
     /**
@@ -169,6 +296,23 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public void elimina(K llave) {
         // Aquí va su código.
+        if (llave == null)
+            throw new IllegalArgumentException();
+
+        int i = dispersor.dispersa(llave) & getMascara();
+
+        if (entradas[i] == null)
+            throw new NoSuchElementException();
+
+        for (Entrada ent : entradas[i]) {
+            if (ent.llave.equals(llave)) {
+                entradas[i].elimina(ent);
+                elementos--;
+            }
+        }
+
+        if (entradas[i].esVacia())
+            entradas[i] = null;
     }
 
     /**
@@ -177,6 +321,14 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public int colisiones() {
         // Aquí va su código.
+        int r = 0;
+
+        for (int i = 0; i < entradas.length; i++) {
+            if (entradas[i] != null)
+                r += entradas[i].getLongitud() - 1;
+        }
+
+        return r;
     }
 
     /**
@@ -186,6 +338,15 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public int colisionMaxima() {
         // Aquí va su código.
+        int max = 0;
+
+        for (int i = 0; i < entradas.length; i++) {
+            if (entradas[i] != null)
+                if (entradas[i].getLongitud() > max)
+                    max = entradas[i].getLongitud();
+        }
+
+        return max - 1;
     }
 
     /**
@@ -194,6 +355,7 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public double carga() {
         // Aquí va su código.
+        return (double) elementos/entradas.length;
     }
 
     /**
@@ -202,6 +364,7 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public int getElementos() {
         // Aquí va su código.
+        return elementos;
     }
 
     /**
@@ -211,6 +374,7 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public boolean esVacia() {
         // Aquí va su código.
+        return elementos == 0;
     }
 
     /**
@@ -218,6 +382,8 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     public void limpia() {
         // Aquí va su código.
+        this.entradas = nuevoArreglo(entradas.length);
+        this.elementos = 0;
     }
 
     /**
@@ -226,6 +392,20 @@ public class Diccionario<K, V> implements Iterable<V> {
      */
     @Override public String toString() {
         // Aquí va su código.
+        if (esVacia())
+            return "{}";
+
+        String r = "{";
+
+        for (int i = 0; i < entradas.length; i++) {
+            if (entradas[i] != null) {
+                for (Entrada ent : entradas[i]) {
+                    r += ent.llave.toString() + " : " + ent.valor.toString() + ", ";
+                }
+            }
+        }
+
+        return r + "}";
     }
 
     /**
@@ -241,6 +421,19 @@ public class Diccionario<K, V> implements Iterable<V> {
         @SuppressWarnings("unchecked") Diccionario<K, V> d =
             (Diccionario<K, V>)o;
         // Aquí va su código.
+            if (this.elementos != d.elementos)
+                return false;
+
+            for (int i = 0; i < entradas.length; i++) {
+                if (entradas[i] != null) {
+                    for (Entrada ent : entradas[i]) {
+                        if (!d.contiene(ent.llave) || !d.get(ent.llave).equals(ent.valor))
+                            return false;
+                    }
+                }
+            }
+
+            return true;
     }
 
     /**
