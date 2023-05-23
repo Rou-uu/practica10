@@ -396,12 +396,12 @@ public class Diccionario<K, V> implements Iterable<V> {
         if (esVacia())
             return "{}";
 
-        String r = "{";
+        String r = "{ ";
 
         for (int i = 0; i < entradas.length; i++) {
             if (entradas[i] != null) {
                 for (Entrada ent : entradas[i]) {
-                    r += ent.llave.toString() + " : " + ent.valor.toString() + ", ";
+                    r += String.format("'%s': '%s', ", ent.llave.toString(), ent.valor.toString());
                 }
             }
         }
